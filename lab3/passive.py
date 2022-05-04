@@ -24,12 +24,14 @@ lock = threading.Lock()
 colors = {}
 reset = '\u001b[0m'
 red = '\u001b[31m'
+colorNumber = 32
 
 def generateColor(ns):
 	'''Generate an ANSI escape code to color the terminal according to the node'''
+	global colorNumber
+
 	colorPatternStart = '\u001b['
 	colorPatternEnd = 'm'
-	colorNumber = 32
 
 	colors[ns] = colorPatternStart + str(colorNumber) + colorPatternEnd
 	colorNumber += 1
