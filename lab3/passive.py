@@ -3,6 +3,7 @@ import sys
 import select
 import threading
 import datetime
+import glob
 
 # Socket connection info
 HOST = ''
@@ -70,12 +71,33 @@ def printHelp():
 	print(f'{red}a{reset}ctive: Print all active connections.')
 	print(f'{red}c{reset}losed: Print all closed connections.')
 	print(f'{red}m{reset}essages: Print all messages transactioned by the server (leave your signature ツ).')	
+	print(f'{red}f{reset}iles: Print all files available.')	
 	print('')
+
+def printFiles():
+	'''Print all files available'''
+
+	print('')
+	# Gets all files on folder
+	for f in glob.glob("./*.txt"):
+		print(f'{red}{str(f)}{reset}')
+	print('')
+
+def getFiles():
+	'''Return a string containing all files available'''
+
+	files = '\n'
+
+	# Gets all files on folder
+	for f in glob.glob("./*.txt"):
+		files += f'{red}{str(f)}{reset}\n'
+
+	return files
 
 def getClosedConnections():
 	'''Get all closed connections from file'''
 
-	f = open('connections.txt', 'r')
+	f = open('connections', 'r')
 	lines = [line.rstrip() for line in f.readlines()]
 	for line in lines:
 		address, time = eval(line)
@@ -85,7 +107,7 @@ def getClosedConnections():
 def setClosedConnections():
 	'''Set all closed connections on file'''
 
-	f = open('connections.txt', 'w')
+	f = open('connections', 'w')
 	for t in closedConnections:
 		f.write(str(t)+'\n')
 	f.close()
@@ -93,7 +115,7 @@ def setClosedConnections():
 def getMessages():
 	'''Get all messages from file'''
 
-	f = open('messages.txt', 'r')
+	f = open('messages', 'r')
 	lines = [line.rstrip() for line in f.readlines()]
 	for line in lines:
 		message, address, time = eval(line)
@@ -103,7 +125,7 @@ def getMessages():
 def setMessages():
 	'''Set all messages on file'''
 
-	f = open('messages.txt', 'w')
+	f = open('messages', 'w')
 	for m in messages:
 		f.write(str(m)+'\n')
 	f.close()
@@ -141,8 +163,11 @@ def treatRequests(ns, address):
 	'''Manipulate the data received from the socket, according to the application (echo)'''
 
 	while True:
-		data = ns.recv(2048)
-		if not data: 
+		msg = ns.recv(2048)
+		msg = str(msg, encoding='utf-8')
+
+		# If client closes connection
+		if not msg:
 			print(f'Closed with {colors[ns]}{address}{reset}.')
 
 			lock.acquire()
@@ -151,10 +176,45 @@ def treatRequests(ns, address):
 			lock.release()
 
 			ns.close()
-			return
-		messages.append((str(data, encoding='utf-8'), address, getTime()))
-		print(f'{colors[ns]}{str(data, encoding="utf-8")}{reset} received from {colors[ns]}{address}{reset}.')
-		ns.send(data)
+			break
+		
+		messages.append((msg, address, getTime()))
+		print(f'{colors[ns]}{msg}{reset} received from {colors[ns]}{address}{reset}.')
+
+		# If the message is the command 'f'
+		if msg == 'f':
+			ns.send(bytearray(getFiles(), encoding='utf-8'))
+			continue
+
+		try:
+			with open(msg, 'r') as f:
+
+				frequencies = {}
+
+		# Add every word from the file into a dictionary to count frequencies
+				for line in f:
+					for word in line.split():
+						lowerWord = word.lower()
+						if frequencies.__contains__(lowerWord): frequencies[lowerWord] += 1 
+						else: frequencies[lowerWord] = 1
+		
+		# Sort frequencies dictionary based on value, decreasing order
+				frequencies = dict(sorted(frequencies.items(), key=lambda p: p[1], reverse=True))
+
+		# Prepare the message containing 5 words, from most frequent to least frequent
+				l = ''
+				i = 0
+				for word in frequencies.keys():
+					l += word
+					i += 1
+					if i == 5: break
+					l += '\n'
+
+				ns.send(bytearray(l, encoding='utf-8'))
+		except:
+			erro = f'Arquivo {msg} {red}não encontrado{reset}'
+			ns.send(bytearray(erro, encoding='utf-8'))  
+
 
 def main():
 	getClosedConnections()
@@ -189,5 +249,7 @@ def main():
 					printClosedConnections()
 				elif cmd == 'm':
 					printMessages()
+				elif cmd == 'f':
+					printFiles()
 
 main()
