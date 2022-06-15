@@ -9,6 +9,8 @@ def startConnection():
   global node
 
   conn = rpyc.connect(SERVER, PORT)
+
+  # As soon as it connects, get generated PID
   node = conn.root.getNode()
 
   print(node)

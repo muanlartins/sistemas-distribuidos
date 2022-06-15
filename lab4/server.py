@@ -5,15 +5,23 @@ from random import randint
 PORT = 7776
 
 class ProbeEcho(rpyc.Service):
+  # RPyC -> node map
   connections = {}
+
+  # All nodes connected
   nodes = []
+
+  # The neighborhood graph (adjacency list)
   neighbors = {}
 
   # Auxiliar Functions
   def generatePID(self):
     node = randint(1, 50)
+
+    # Avoid repeated PIDs
     while node in self.nodes:
       node = randint(1, 50)
+
     return node
   
   def addConnection(self, node, conn):
@@ -33,6 +41,8 @@ class ProbeEcho(rpyc.Service):
 
     for neighbor in self.nodes:
       if neighbor != node:
+
+        # 50% chance of having an edge between two nodes
         if randint(0, 1):
           self.neighbors[node].append(neighbor)
           self.neighbors[neighbor].append(node)
@@ -44,6 +54,7 @@ class ProbeEcho(rpyc.Service):
     for key in self.neighbors:
       if node in self.neighbors[key]: self.neighbors[key].remove(node)
 
+  # Depth-first Search for the election algorithm
   def dfs(self, visited, answers, node):
     visited.append(node)
     answers[node] = node
