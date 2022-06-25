@@ -1,7 +1,7 @@
 import rpyc
 
 SERVER = 'localhost'
-PORT = 7776
+PORT = 7771
 
 node = 0
 
@@ -11,7 +11,7 @@ def startConnection():
   conn = rpyc.connect(SERVER, PORT)
 
   # As soon as it connects, get generated PID
-  node = conn.root.getNode()
+  # node = conn.root.getNode()
 
   print(node)
 
