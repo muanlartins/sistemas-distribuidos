@@ -46,6 +46,15 @@ class Node(rpyc.Service):
 
     self.exposed_probe(self.port)
 
+  def exposed_ack(self, port):
+    global parent, counter, leader
+
+    print(f'I have received an ACK from {port}\n')
+    counter -= 1
+    if not counter: 
+      print(f'My counter is now {counter}\n')
+      if parent != self.port: self.connections[parent].root.echo(leader, self.port)
+
   def exposed_probe(self, port):
     global parent, counter, leader
 
@@ -66,18 +75,12 @@ class Node(rpyc.Service):
       
       for neighbor in self.neighbors:
         if neighbor != parent:
-          value = self.connections[neighbor].root.probe(self.port)
-          if value == 'ACK': 
-            print(f'I have received an ACK from {neighbor}\n')
-            counter -= 1
-            if not counter: 
-              print(f'My counter is now {counter}\n')
-              if parent != self.port: self.connections[parent].root.echo(leader, self.port)
+          self.connections[neighbor].root.probe(self.port)
       
       return
 
     else: 
-      return 'ACK'
+      self.connections[port].root.ack(self.port)
   
   def exposed_echo(self, value, son):
     global parent, counter, leader
